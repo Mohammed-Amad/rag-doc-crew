@@ -1,0 +1,24 @@
+{
+  // {question} is substituted at runtime in main.py for each of the 3
+  // questions the crew is run against.
+
+  "research_task": {
+    "agent": "document_researcher",
+    "description": "Answer this question using ONLY the rag_search tool over the local knowledge base: \"{question}\". Break the question into its distinct TOPICS (not individual facts) and issue ONE rag_search query per topic -- for example, a question about remote work policy AND Q3 vs Q2 revenue needs exactly 2 queries, not one per number or clause. Do not repeat a query you've already run, and do not re-search a topic you've already retrieved chunks for. Aim for 2-4 total tool calls for a typical question. For every fact you state, cite the source document filename and chunk index returned by the tool. Do not use any knowledge you have from training, even if it seems relevant or correct -- this crew only knows what is in knowledge/. If a part of the question is not covered by any retrieved chunk (or is entirely unrelated to Solvane's handbook, product spec, and financials), respond for that part with exactly: 'I don't have information about this in the available documents.'",
+    "expected_output": "A draft answer to the question, with each factual claim immediately followed by its source citation, e.g. (source: employee_handbook.pdf, chunk 2). Any unanswerable or out-of-scope part of the question must be explicitly answered with 'I don't have information about this in the available documents.' instead of a guess."
+  },
+
+  "fact_check_task": {
+    "agent": "fact_checker",
+    "context": ["research_task"],
+    "description": "Take the Document Researcher's draft answer for the question \"{question}\". Group the draft's claims by TOPIC (not one query per individual claim) and re-run ONE rag_search query per topic to independently verify that group of claims against the retrieved chunks -- aim for 2-4 total tool calls, matching the topics the Researcher already covered. Do not repeat a query you've already run. Produce a claim-by-claim verdict list based on what you retrieve.",
+    "expected_output": "A list of every claim from the draft, each labeled SUPPORTED (with source+chunk) or UNSUPPORTED/POSSIBLE HALLUCINATION (with a short reason, e.g. 'no chunk mentions this number' or 'knowledge base returned no relevant chunks')."
+  },
+
+  "report_task": {
+    "agent": "report_writer",
+    "context": ["research_task", "fact_check_task"],
+    "description": "Using the Researcher's draft and the Fact Checker's verdicts for the question \"{question}\", write the final markdown report. Only include claims marked SUPPORTED in the Executive Summary as fact. Any UNSUPPORTED claim must be listed in a separate 'Flagged / Unverifiable' subsection, not stated as fact. STRUCTURE FOR THE EXECUTIVE SUMMARY (always follow this, regardless of how many facts there are): start with 1-2 sentences directly answering the question in plain language, THEN a bulleted list of the supporting key points, with the most important figures and conclusions in **bold** so a reader scanning quickly can find them without reading every sentence. Never submit a single dense paragraph -- even a short answer should have the 1-2 sentence lead-in plus at least one supporting bullet if there is any supporting detail available. After the Executive Summary and before Citations, add a '## Notes' section containing any useful context that isn't itself a citable fact -- for example: what time period or comparison basis the figures use (e.g. quarter-over-quarter vs year-over-year), explicit reminders of what was NOT covered or found in the documents, or a brief caveat about scope (e.g. 'this only reflects the 3 internal documents, not real-world/current information'). If there is genuinely nothing useful to note, write 'None' under Notes rather than omitting the section. Keep prose natural, not a robotic recitation of every citation inline; the Citations section at the end is where the full source mapping lives.",
+    "expected_output": "A markdown document with, in this order: a title (the question), '## Executive Summary' (1-2 sentence direct answer + bulleted key points with bolded figures), '## Notes' (context/caveats, or 'None'), '## Flagged / Unverifiable' (or 'None' if empty), and '## Citations' listing each supported claim mapped to its source document and chunk index."
+  }
+}
