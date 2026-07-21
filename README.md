@@ -5,7 +5,7 @@ knowledge base** (RAG), never from the LLM's own training knowledge. Built aroun
 company, Solvane Dynamics Inc. (warehouse robotics / fleet-orchestration software), with three
 hand-crafted source PDFs as the only source of truth.
 
-**Live demo:** https://your-app-name.streamlit.app
+**Live demo:**  https://rag-doc-crew.streamlit.app
 
 ```
 Document Researcher  →  Fact Checker  →  Report Writer
