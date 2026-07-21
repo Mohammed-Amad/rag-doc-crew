@@ -1,7 +1,4 @@
 {
-  // {question} is substituted at runtime in main.py for each of the 3
-  // questions the crew is run against.
-
   "research_task": {
     "agent": "document_researcher",
     "description": "Answer this question using ONLY the rag_search tool over the local knowledge base: \"{question}\". Break the question into its distinct TOPICS (not individual facts) and issue ONE rag_search query per topic -- for example, a question about remote work policy AND Q3 vs Q2 revenue needs exactly 2 queries, not one per number or clause. Do not repeat a query you've already run, and do not re-search a topic you've already retrieved chunks for. Aim for 2-4 total tool calls for a typical question. For every fact you state, cite the source document filename and chunk index returned by the tool. Do not use any knowledge you have from training, even if it seems relevant or correct -- this crew only knows what is in knowledge/. If a part of the question is not covered by any retrieved chunk (or is entirely unrelated to Solvane's handbook, product spec, and financials), respond for that part with exactly: 'I don't have information about this in the available documents.'",

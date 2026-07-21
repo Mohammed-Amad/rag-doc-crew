@@ -1,9 +1,5 @@
 """
 Streamlit interface for the RAG-Powered Document Analyst Crew.
-
-Local run:      streamlit run streamlit_app.py
-Cloud deploy:   push this repo to GitHub, deploy on share.streamlit.io,
-                 set GROQ_API_KEY under App settings -> Secrets.
 """
 
 import os
@@ -18,13 +14,6 @@ st.set_page_config(
     layout="centered",
 )
 
-# ---------------------------------------------------------------------------
-# API key resolution: Streamlit secrets (cloud) -> local .env (already
-# loaded by python-dotenv if present) -> manual entry as a fallback so a
-# visitor without a key configured can still try the app with their own.
-# No sidebar / status chrome is shown -- this happens silently unless a
-# key is genuinely missing, in which case a compact inline prompt appears.
-# ---------------------------------------------------------------------------
 try:
     from dotenv import load_dotenv
     load_dotenv()
@@ -34,10 +23,6 @@ except ImportError:
 if "GROQ_API_KEY" not in os.environ and "GROQ_API_KEY" in st.secrets:
     os.environ["GROQ_API_KEY"] = st.secrets["GROQ_API_KEY"]
 
-# ---------------------------------------------------------------------------
-# Compact, formal header with a hover tooltip (native browser title
-# attribute) instead of a full paragraph of description text on the page.
-# ---------------------------------------------------------------------------
 HEADER_TOOLTIP = (
     "3-agent CrewAI pipeline (Document Researcher -> Fact Checker -> "
     "Report Writer). Answers strictly from the local knowledge base "
@@ -69,9 +54,6 @@ st.markdown(
 )
 st.write("")
 
-# ---------------------------------------------------------------------------
-# Manual key entry -- only shown if no key was found via env/secrets.
-# ---------------------------------------------------------------------------
 if "GROQ_API_KEY" not in os.environ:
     with st.expander("⚠️ Groq API key required", expanded=True):
         manual_key = st.text_input(
@@ -109,22 +91,31 @@ if submitted:
     elif not question.strip():
         st.error("Please enter a question.")
     else:
-        # Imported here, not at module top, so the app still loads and shows
-        # the header/key-entry UI even before crewai/chromadb finish
-        # importing (those imports are the slow part on cold start).
         from crew import build_crew
 
         status_box = st.status("Running the crew...", expanded=True)
         try:
-            status_box.write("🔎 **Document Researcher** — searching the knowledge base...")
             crew = build_crew(question)
 
+            TASK_DONE_LABELS = [
+                "🔎 **Document Researcher** — retrieved and drafted an answer from the knowledge base.",
+                "✅ **Fact Checker** — independently re-verified each claim.",
+                "📝 **Report Writer** — compiled the final report.",
+            ]
+
+            def make_callback(label):
+                def _on_task_complete(output):
+                    status_box.write(label)
+                return _on_task_complete
+
+            for i, task in enumerate(crew.tasks):
+                task.callback = make_callback(TASK_DONE_LABELS[i])
+
+            status_box.write("🔎 **Document Researcher** — searching the knowledge base...")
             start = time.time()
             result = crew.kickoff()
             elapsed = time.time() - start
 
-            status_box.write("✅ **Fact Checker** — verified claims against retrieved chunks.")
-            status_box.write("📝 **Report Writer** — compiled the final report.")
             status_box.update(label=f"Done in {elapsed:.0f}s", state="complete", expanded=False)
 
             st.markdown("---")
@@ -155,9 +146,6 @@ if submitted:
             else:
                 st.error(f"Something went wrong: {msg}")
 
-# ---------------------------------------------------------------------------
-# History of previously generated reports (this session / this deployment)
-# ---------------------------------------------------------------------------
 existing_reports = sorted(glob.glob(os.path.join("output", "*.md")), key=os.path.getmtime, reverse=True)
 if existing_reports:
     st.markdown("---")

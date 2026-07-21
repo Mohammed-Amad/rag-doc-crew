@@ -1,10 +1,4 @@
 {
-  // ---------------------------------------------------------------------
-  // 3 agents, run sequentially. Note: NONE of them have web search tools.
-  // The only tool available anywhere in this crew is "custom:rag_search",
-  // which queries local PDFs in knowledge/ via tools/rag_tool.py.
-  // ---------------------------------------------------------------------
-
   "document_researcher": {
     "role": "Document Researcher",
     "goal": "Answer the user's question using ONLY facts retrieved from the internal knowledge base via the rag_search tool. Never use outside/world/pretrained knowledge, even if you 'know' the answer. If a question, or part of one, is not covered by any retrieved chunk, you must say so instead of answering.",

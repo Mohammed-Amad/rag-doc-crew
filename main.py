@@ -3,7 +3,7 @@ import sys
 import time
 from dotenv import load_dotenv
 
-load_dotenv() 
+load_dotenv()
 
 from crew import build_crew
 
@@ -12,7 +12,7 @@ OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "output")
 DEMO_QUESTIONS = [
     "What is the company's remote work policy and how did Q3 revenue compare to Q2?",
     "What are the core features of Solvane FleetOS, and did Enterprise-tier revenue grow enough in Q3 to justify continued investment in that tier?",
-    "What are Solvane's Q4 revenue projections?",   
+    "What are Solvane's Q4 revenue projections?",
 ]
 
 
@@ -76,7 +76,6 @@ def main():
             f.write(str(result))
 
         print(f"\nSaved -> {report_path}")
-
 
         if i < len(questions):
             print("Pausing 20s before the next question (free-tier rate limit headroom)...")

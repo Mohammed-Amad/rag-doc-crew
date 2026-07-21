@@ -35,7 +35,6 @@ def build_crew(question: str, groq_model: str = "llama-3.3-70b-versatile") -> Cr
     agents_cfg = load_jsonc(os.path.join(CONFIG_DIR, "agents.jsonc"))
     tasks_cfg = load_jsonc(os.path.join(CONFIG_DIR, "tasks.jsonc"))
 
-
     llm = LLM(
         model=groq_model,
         custom_openai=True,
@@ -54,7 +53,6 @@ def build_crew(question: str, groq_model: str = "llama-3.3-70b-versatile") -> Cr
             allow_delegation=cfg.get("allow_delegation", False),
             verbose=cfg.get("verbose", True),
             llm=llm,
-
             max_iter=8,
         )
 

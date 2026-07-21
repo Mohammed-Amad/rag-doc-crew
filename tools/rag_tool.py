@@ -3,9 +3,7 @@ custom:rag_search
 ------------------
 A CrewAI custom tool implementing the RAG pipeline ourselves (chunk -> embed
 -> store -> retrieve) instead of using CrewAI's built-in PDFSearchTool/RagTool.
-This makes the retrieval step fully inspectable, which is the point of the
-exercise: you can see exactly where chunking, embedding, and similarity
-search happen.
+This makes the retrieval step fully inspectable.
 
 Retrieval happens ENTIRELY inside this tool's _run() method. Agents never see
 the raw PDFs — they only see whatever chunks this tool decides to return.
@@ -26,20 +24,12 @@ from crewai.tools import BaseTool
 KNOWLEDGE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "knowledge")
 CHROMA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".chroma_store")
 
-# Which embedding provider to use.
-# "local"  -> no API key, no network restriction, runs on your own machine (default)
-# "gemini" -> free but region-restricted (Google AI Studio)
-# "openai" -> needs a paid OpenAI key
 EMBEDDING_PROVIDER = os.environ.get("EMBEDDING_PROVIDER", "local")
 
-CHUNK_SIZE = 500      # characters per chunk (smaller = more distinct chunks, less topic dilution)
-CHUNK_OVERLAP = 100   # characters of overlap between consecutive chunks
-TOP_K = 5              # chunks returned per query
+CHUNK_SIZE = 500
+CHUNK_OVERLAP = 100
+TOP_K = 5
 
-
-# ---------------------------------------------------------------------------
-# 1. Extraction + chunking
-# ---------------------------------------------------------------------------
 
 def extract_text_by_file(pdf_path: str) -> str:
     reader = PdfReader(pdf_path)
@@ -47,6 +37,7 @@ def extract_text_by_file(pdf_path: str) -> str:
 
 
 import re
+
 
 def _sliding_window(text: str, chunk_size: int, overlap: int) -> List[str]:
     """Fallback: blind character sliding window, used only for pieces that
@@ -59,11 +50,6 @@ def _sliding_window(text: str, chunk_size: int, overlap: int) -> List[str]:
     return chunks
 
 
-# Matches real section headers like "4. Cost of goods sold and gross margin"
-# (number, period, space, capital letter) as they appear in the flowing body
-# text. Deliberately does NOT match table-of-contents rows, which render as
-# "4 Cost of goods sold and gross margin" (no period after the number) --
-# see build_pdf()/toc_page() in the PDF-generation source.
 SECTION_HEADER_RE = re.compile(r'(?=\b\d{1,2}\.\s+[A-Z])')
 
 
@@ -81,12 +67,10 @@ def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVE
     than against a chunk where that's one of three unrelated topics mixed
     together.
     """
-    text = " ".join(text.split())  # normalize whitespace
+    text = " ".join(text.split())
 
     split_points = [m.start() for m in SECTION_HEADER_RE.finditer(text)]
     if not split_points:
-        # No recognizable section headers (e.g. a document without this
-        # numbering convention) -- fall back to the old behavior entirely.
         return [c for c in _sliding_window(text, chunk_size, overlap) if c.strip()]
 
     boundaries = [0] + split_points + [len(text)]
@@ -95,27 +79,15 @@ def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVE
     chunks = []
     for section in sections:
         if len(section) <= chunk_size * 1.4:
-            # Small/medium section: keep it as ONE chunk even if slightly
-            # over chunk_size, rather than arbitrarily slicing it in half.
             chunks.append(section)
         else:
-            # A genuinely long section still gets sub-chunked, but only
-            # within itself -- it never gets merged with a neighboring
-            # section's content.
             chunks.extend(_sliding_window(section, chunk_size, overlap))
 
     return [c.strip() for c in chunks if c.strip()]
 
 
-# ---------------------------------------------------------------------------
-# 2. Build (or load) the vector store, once, from everything in knowledge/
-# ---------------------------------------------------------------------------
-
 def _build_embedding_function():
     if EMBEDDING_PROVIDER == "local":
-        # Runs entirely on your machine via ChromaDB's bundled ONNX model
-        # (all-MiniLM-L6-v2). No API key, no region restriction. The model
-        # (~80MB) downloads once on first use and is cached locally after.
         return embedding_functions.DefaultEmbeddingFunction()
     elif EMBEDDING_PROVIDER == "gemini":
         return embedding_functions.GoogleGenerativeAiEmbeddingFunction(
@@ -140,9 +112,6 @@ def _build_or_load_collection():
         embedding_function=_build_embedding_function(),
     )
 
-    # Only (re)ingest if the collection is empty -> avoids re-embedding on
-    # every crew run. Delete .chroma_store/ to force a rebuild after editing
-    # the source PDFs.
     if collection.count() == 0:
         ids, docs, metas = [], [], []
         pdf_paths = sorted(glob.glob(os.path.join(KNOWLEDGE_DIR, "*.pdf")))
@@ -179,13 +148,6 @@ class DocumentRAGTool(BaseTool):
     args_schema: type[BaseModel] = RagSearchInput
 
     def _run(self, query: str) -> str:
-        # Retry a few times with a short backoff. This protects against a
-        # known transient ChromaDB issue ("Could not connect to tenant
-        # default_tenant") that can happen on the very first query right
-        # after the local embedding model finishes loading. Without this,
-        # a one-off connection hiccup can get silently treated by the agent
-        # as "this topic isn't in the documents" -- which is a false
-        # negative, not a real absence of data.
         last_error = None
         for attempt in range(3):
             try:
@@ -212,10 +174,6 @@ class DocumentRAGTool(BaseTool):
                     time.sleep(1.5 * (attempt + 1))
                     continue
 
-        # All retries exhausted -- this is a genuine infrastructure failure,
-        # not "no data". Surface it clearly and distinctly from
-        # NO_RELEVANT_CHUNKS_FOUND so the agent (and task prompts) don't
-        # confuse the two.
         return (
             f"RAG_SEARCH_TEMPORARILY_FAILED: could not query the knowledge base "
             f"after 3 attempts ({last_error}). This is an infrastructure error, "
@@ -224,11 +182,6 @@ class DocumentRAGTool(BaseTool):
         )
 
 
-# Warm up the vector store as soon as this module is imported (i.e. when
-# crew.py builds the CUSTOM_TOOL_REGISTRY), rather than lazily on an
-# agent's first live tool call. This is what actually prevents the
-# "Could not connect to tenant default_tenant" race in practice -- ingestion
-# and tenant setup now happen before the crew starts, not under it.
 try:
     _build_or_load_collection()
 except Exception as _warmup_error:

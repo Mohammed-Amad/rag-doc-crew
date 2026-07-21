@@ -1,14 +1,17 @@
 # What are the SLA response times for each FleetOS pricing tier?
 ## Executive Summary
-The SLA response times for each FleetOS pricing tier are as follows: 
-- Standard tier: next business day 
-- Priority tier: 4 business hours 
-- Enterprise tier: 1 hour, 24/7
+The SLA response times for each FleetOS pricing tier vary, with each tier offering a different level of support response time. The key points for each tier are:
+* Standard tier has a support response time of **next business day**
+* Priority tier has a support response time of **4 business hours**
+* Enterprise tier has a support response time of **1 hour, 24/7**
+
+## Notes
+The provided information is based on the data available in the product_spec.pdf document and may not reflect real-time or current information. The response times are specific to each pricing tier and do not include any additional services or support options that may be available.
 
 ## Flagged / Unverifiable
-Not available in the provided documents: Information about SLA response times for any other pricing tiers beyond Standard, Priority, and Enterprise.
+None
 
 ## Citations
-1. Standard tier: next business day - (source: product_spec.pdf, chunk 10)
-2. Priority tier: 4 business hours - (source: product_spec.pdf, chunk 10)
-3. Enterprise tier: 1 hour, 24/7 - (source: product_spec.pdf, chunk 10)
+1. Standard tier has a support response time of "next business day" - (source: product_spec.pdf, chunk 11)
+2. Priority tier has a support response time of "4 business hours" - (source: product_spec.pdf, chunk 11)
+3. Enterprise tier has a support response time of "1 hour, 24/7" - (source: product_spec.pdf, chunk 11)
