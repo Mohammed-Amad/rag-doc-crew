@@ -5,6 +5,8 @@ knowledge base** (RAG), never from the LLM's own training knowledge. Built aroun
 company, Solvane Dynamics Inc. (warehouse robotics / fleet-orchestration software), with three
 hand-crafted source PDFs as the only source of truth.
 
+**Live demo:** https://your-app-name.streamlit.app
+
 ```
 Document Researcher  →  Fact Checker  →  Report Writer
    (retrieves)          (re-verifies)     (formats final report)
@@ -193,3 +195,8 @@ streamlit run streamlit_app.py    # web UI (recommended)
 # OR
 python main.py                     # CLI: interactive prompt, --demo, or CLI args
 ```
+## Deployment notes
+
+Initial deployment on Streamlit Community Cloud failed due to a Python 3.14/`pydantic`
+compatibility issue inside `chromadb`'s dependency chain. Fixed by pinning the app to
+Python 3.11 in Streamlit Cloud's app settings.
